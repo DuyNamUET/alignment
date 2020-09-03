@@ -181,11 +181,11 @@ if __name__ == "__main__":
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
         cmd = receive_from_mega(ser)
-        if cmd == "something":
+        if cmd == "c":
             if is_ok(image):
                 ser.write('1'.encode('utf-8'))
             else:
                 ser.write('0'.encode('utf-8'))
-        elif cmd == "end":
+        elif cmd == "e" or cv2.waitKey(1) & 0xFF == ord('q'): # End task
             break
         
