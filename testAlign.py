@@ -11,6 +11,57 @@ import serial.tools.list_ports
 
 drawing = False 
 rec = []
+
+def draw_rec_with_fix_size(event, x, y, flags, param):
+    global drawing, rec
+    w = 12; h = 25
+    if event == cv2.EVENT_LBUTTONDOWN:
+        drawing = True
+        rec = [(x, y),(x+w, y+h)]
+    elif event == cv2.EVENT_LBUTTONUP:  
+        drawing = False
+    
+def get_mask_with_fix_size(img_path):
+    newpath = "cropped/"+img_path
+    global rec
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, (960, 1280))
+    cv2.namedWindow('image')
+    cv2.setMouseCallback('image', draw_rec_with_fix_size)
+
+    while(True):
+        if len(rec) == 2:
+            roi = img[rec[0][1]:rec[1][1], rec[0][0]:rec[1][0]]
+            cv2.rectangle(img, rec[0], rec[1], (0,255,255), 2)
+            cv2.imwrite(newpath,roi)
+            rec = []
+
+        cv2.imshow('image', img)
+        k = cv2.waitKey(1) & 0xFF
+        if k == ord('q'):
+            break
+
+def get_mask_with_all_imgs(dir, ext=['png', 'jpg']):
+    all_img_paths = []
+    for i in glob.glob("{}/*".format(dir)):
+        if i.split(".")[-1] in ext:
+            all_img_paths.append(i)
+
+    for img_path in all_img_paths:
+        get_mask_with_fix_size(img_path)
+
+def calculate_mean_image(dir, ext=['png', 'jpg']):
+    all_img_paths = []
+    for i in glob.glob("{}/*".format(dir)):
+        if i.split(".")[-1] in ext:
+            all_img_paths.append(i)
+
+    for img_path in all_img_paths:
+        img = cv2.imread(img_path)
+        size = img.shape
+        mean = np.sum(img)/(size[0]*size[1])
+        print(mean)
+
 def draw_rectange(event, x, y, flags, param):
     global drawing, rec
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -149,6 +200,10 @@ if __name__ == "__main__":
     # get_mask('images/ok/0.png')
     # get_mean_corrected('images/ok')
 
+    # get_mask_with_fix_size('cam/ok/7.jpg')
+    # get_mask_with_all_imgs('cam/ok')
+    # get_mask_with_all_imgs('cam/notok')
+
     ### Visualize ###
     # show_image_with_fixed_coords('images/notok')
     # show_image_with_fixed_coords('images/ok')
@@ -158,34 +213,35 @@ if __name__ == "__main__":
     
     ### Evaluate ###
     # compute_mean_all_images('images/notok')
+    # calculate_mean_image("cropped/cam/notok")
     
     ### Testing ###
     # test_with_images('images/ok')
 
     ### Main ###
-    # Serial configuration
-    port = get_serial_port()
-    print(port)
-    ser = serial.Serial(port, 9600, timeout=0.1)
-    ser.flush()
+    # # Serial configuration
+    # port = get_serial_port()
+    # print(port)
+    # ser = serial.Serial(port, 9600, timeout=0.1)
+    # ser.flush()
 
-    # Camera Pi configuration
-    camera = PiCamera()
-    camera.resolution = (640, 480)
-    camera.framerate = 60
-    # camera.rotation = 180
-    rawCapture = PiRGBArray(camera, size=camera.resolution)
+    # # Camera Pi configuration
+    # camera = PiCamera()
+    # camera.resolution = (640, 480)
+    # camera.framerate = 60
+    # # camera.rotation = 180
+    # rawCapture = PiRGBArray(camera, size=camera.resolution)
     
-    time.sleep(0.1)
+    # time.sleep(0.1)
     
-    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-        image = frame.array
-        cmd = receive_from_mega(ser)
-        if cmd == "c":
-            if is_ok(image):
-                ser.write('1'.encode('utf-8'))
-            else:
-                ser.write('0'.encode('utf-8'))
-        elif cmd == "e" or cv2.waitKey(1) & 0xFF == ord('q'): # End task
-            break
+    # for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    #     image = frame.array
+    #     cmd = receive_from_mega(ser)
+    #     if cmd == "c":
+    #         if is_ok(image):
+    #             ser.write('1'.encode('utf-8'))
+    #         else:
+    #             ser.write('0'.encode('utf-8'))
+    #     elif cmd == "e" or cv2.waitKey(1) & 0xFF == ord('q'): # End task
+    #         break
         
