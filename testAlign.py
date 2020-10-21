@@ -163,11 +163,29 @@ def get_mean_corrected(ok_dir, coords="coords.txt", ext=['png', 'jpg']):
     # print(average)
     pickle.dump(average, open("value.txt", 'wb'))
 
+def get_variance(dir, coords="coords.txt", value="value.txt", ext=['png', 'jpg']):
+    all_img_paths = []
+    for i in glob.glob("{}/*".format(ok_dir)):
+        if i.split(".")[-1] in ext:
+            all_img_paths.append(i)
+    
+    var = 0
+    expect = pickle.load(open('value.txt', 'rb'))
+    for img_path in all_img_paths:
+        img = cv2.imread(img_path)
+        mean = compute_mean_value(img, coords)
+        var += (mean - expect)^2
+    
+    var = sqrt(var/(len(all_img_paths)-1))
+    print(var)
+    pickle.dump(var, open("variance.txt", 'wb'))
+
 def is_ok(img, coords="coords.txt", correct='value.txt'):
     value =  pickle.load(open(correct, 'rb'))
+    variance = pickle.load(open("variance.txt", 'rb'))
     input_mean = compute_mean_value(img, coords)
-    # print(abs(value - input_mean))
-    return abs(value-input_mean) < 10
+    # Confidence interval 90%
+    return abs(value-input_mean) < 1.65*variance
 
 def test_with_images(dir, ext=['png', 'jpg'], coords="coords.txt", correct='value.txt'):
     all_img_paths = []
@@ -212,7 +230,7 @@ if __name__ == "__main__":
     # show_histogram_all_images('images/notok')
     
     ### Evaluate ###
-    # compute_mean_all_images('images/notok')
+    # compute_mean_all_images('images/ok')
     # calculate_mean_image("cropped/cam/notok")
     
     ### Testing ###
